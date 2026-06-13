@@ -40,6 +40,7 @@ async function fetchData() {
     process.exit(1);
   }
 
+  data.fetchedAt = new Date().toISOString();
   fs.writeFileSync('performances.json', JSON.stringify(data, null, 2));
   console.log(`Saved ${data.data.length} performances to performances.json`);
 }

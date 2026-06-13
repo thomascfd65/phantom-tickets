@@ -254,6 +254,11 @@
   <p>His Majesty's Theatre · Best value across all performances</p>
 </header>
 
+<div id="freshness-bar" style="padding:0.5rem 2rem; font-size:0.75rem; color:#4a4258; border-bottom:1px solid #1e1b28; display:flex; gap:1.5rem;">
+  <span id="last-updated"></span>
+  <span id="next-refresh"></span>
+</div>
+
 <div class="controls">
   <div class="field">
     <label>From</label>
@@ -529,3 +534,40 @@ document.getElementById('dateTo').value = inThreeMonths.toISOString().split('T')
 </script>
 </body>
 </html>
+<script>
+// Freshness bar
+function updateFreshnessBar(fetchedAt) {
+  const refreshTimes = [
+    { h: 7,  m: 0  },
+    { h: 11, m: 0  },
+    { h: 15, m: 0  },
+    { h: 17, m: 30 },
+  ];
+  const now = new Date();
+  const fetched = new Date(fetchedAt);
+  const diffMins = Math.floor((now - fetched) / 60000);
+  const agoStr = diffMins < 1 ? 'just now'
+    : diffMins < 60 ? diffMins + 'm ago'
+    : Math.floor(diffMins/60) + 'h ' + (diffMins%60) + 'm ago';
+  document.getElementById('last-updated').textContent = 'Data updated ' + agoStr;
+  for (let d = 0; d <= 1; d++) {
+    for (const t of refreshTimes) {
+      const c = new Date(now);
+      c.setUTCDate(now.getUTCDate() + d);
+      c.setUTCHours(t.h, t.m, 0, 0);
+      if (c > now) {
+        const mins = Math.round((c - now) / 60000);
+        const h = Math.floor(mins/60), m = mins%60;
+        document.getElementById('next-refresh').textContent = 'Next refresh in ' + (h > 0 ? h+'h '+m+'m' : m+'m');
+        return;
+      }
+    }
+  }
+}
+fetch('performances.json').then(r=>r.json()).then(data => {
+  if (data.fetchedAt) {
+    updateFreshnessBar(data.fetchedAt);
+    setInterval(() => updateFreshnessBar(data.fetchedAt), 60000);
+  }
+}).catch(()=>{});
+</script>
