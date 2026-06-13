@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phantom Seat Finder</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0f;
+    color: #e8e4dc;
+    font-family: 'Georgia', serif;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 2.5rem 2rem 1.5rem;
+    border-bottom: 1px solid #2a2535;
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+  }
+
+  header h1 {
+    font-size: 1.1rem;
+    font-weight: normal;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #c9a84c;
+  }
+
+  header p {
+    font-size: 0.8rem;
+    color: #6b6478;
+    letter-spacing: 0.05em;
+  }
+
+  .controls {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #2a2535;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #6b6478;
+  }
+
+  input[type="date"], select {
+    background: #13111a;
+    border: 1px solid #2a2535;
+    color: #e8e4dc;
+    padding: 0.5rem 0.75rem;
+    font-family: 'Georgia', serif;
+    font-size: 0.9rem;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="date"]:focus, select:focus {
+    border-color: #c9a84c;
+  }
+
+  button {
+    background: #c9a84c;
+    color: #0a0a0f;
+    border: none;
+    padding: 0.55rem 1.5rem;
+    font-family: 'Georgia', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 2px;
+    font-weight: bold;
+    transition: background 0.15s;
+    align-self: flex-end;
+  }
+
+  button:hover { background: #e0bc5a; }
+  button:disabled { background: #3a3245; color: #6b6478; cursor: not-allowed; }
+
+  .status {
+    padding: 1rem 2rem;
+    font-size: 0.8rem;
+    color: #6b6478;
+    min-height: 2.5rem;
+    letter-spacing: 0.03em;
+  }
+
+  .status.error { color: #c0504a; }
+
+  .results {
+    padding: 0 2rem 3rem;
+  }
+
+  .results-header {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr 1.2fr;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #4a4258;
+    border-bottom: 1px solid #1e1b28;
+    margin-bottom: 0.25rem;
+  }
+
+  .result-row {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr 1.2fr;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #13111a;
+    align-items: center;
+    transition: background 0.1s;
+    cursor: default;
+  }
+
+  .result-row:hover { background: #13111a; }
+
+  .result-row.top-pick {
+    border-left: 2px solid #c9a84c;
+    background: #0f0d16;
+  }
+
+  .date-cell {
+    font-size: 0.95rem;
+  }
+
+  .date-cell .day {
+    color: #e8e4dc;
+  }
+
+  .date-cell .time {
+    font-size: 0.75rem;
+    color: #6b6478;
+    margin-top: 0.1rem;
+  }
+
+  .band-cell {
+    font-size: 0.85rem;
+    color: #c9a84c;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .section-cell {
+    font-size: 0.78rem;
+    color: #9b94a8;
+  }
+
+  .price-cell {
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .price-cell .face {
+    color: #e8e4dc;
+  }
+
+  .price-cell .total {
+    font-size: 0.72rem;
+    color: #6b6478;
+    margin-top: 0.1rem;
+  }
+
+  .avail-cell {
+    font-size: 0.8rem;
+  }
+
+  .avail-cell.plenty { color: #5a9e6f; }
+  .avail-cell.limited { color: #c9a84c; }
+  .avail-cell.scarce { color: #c0504a; }
+
+  .score-cell {
+    font-size: 0.8rem;
+  }
+
+  .score-bar {
+    height: 3px;
+    background: #1e1b28;
+    border-radius: 2px;
+    margin-top: 0.3rem;
+    overflow: hidden;
+  }
+
+  .score-fill {
+    height: 100%;
+    background: #c9a84c;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .top-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #c9a84c;
+    background: #1e1913;
+    border: 1px solid #3a2e10;
+    padding: 0.1rem 0.4rem;
+    border-radius: 2px;
+    display: inline-block;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .book-link {
+    color: #c9a84c;
+    text-decoration: none;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+
+  .book-link:hover { opacity: 1; }
+
+  .empty {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #4a4258;
+    font-size: 0.9rem;
+  }
+
+  .summary-bar {
+    padding: 0.75rem 2rem;
+    font-size: 0.75rem;
+    color: #4a4258;
+    border-bottom: 1px solid #1e1b28;
+    letter-spacing: 0.03em;
+  }
+
+  .summary-bar span { color: #6b6478; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Phantom Seat Finder</h1>
+  <p>His Majesty's Theatre · Best value across all performances</p>
+</header>
+
+<div class="controls">
+  <div class="field">
+    <label>From</label>
+    <input type="date" id="dateFrom">
+  </div>
+  <div class="field">
+    <label>To</label>
+    <input type="date" id="dateTo">
+  </div>
+  <div class="field">
+    <label>Max price (face value)</label>
+    <select id="maxPrice">
+      <option value="999">Any price</option>
+      <option value="50">Up to £50</option>
+      <option value="75">Up to £75</option>
+      <option value="100">Up to £100</option>
+      <option value="150">Up to £150</option>
+      <option value="200">Up to £200</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Section preference</label>
+    <select id="sectionPref">
+      <option value="any">Any section</option>
+      <option value="stalls">Stalls only</option>
+      <option value="royal_circle">Royal Circle only</option>
+      <option value="grand_circle">Grand Circle only</option>
+      <option value="balcony">Balcony only</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Show</label>
+    <select id="showTime">
+      <option value="any">Any time</option>
+      <option value="evening">Evening only (19:30)</option>
+      <option value="matinee">Matinee only (14:30)</option>
+    </select>
+  </div>
+  <button id="searchBtn" onclick="search()">Find best seats</button>
+</div>
+
+<div class="status" id="status">Set your dates and click search.</div>
+
+<div id="results"></div>
+
+<script>
+// ─── Price band → section mapping ───────────────────────────────────────────
+// Based on His Majesty's Theatre seating chart.
+// P bands = premium stalls centre; A/B = stalls sides/upper; C/D/E = circles; F/G/H = balcony/restricted
+const BAND_INFO = {
+  'P0':   { section: 'Stalls',        sectionKey: 'stalls',       quality: 10 },
+  'P0 PP':{ section: 'Stalls',        sectionKey: 'stalls',       quality: 10 },
+  'P1':   { section: 'Stalls',        sectionKey: 'stalls',       quality: 9  },
+  'P1.5': { section: 'Stalls',        sectionKey: 'stalls',       quality: 8.5},
+  'P4':   { section: 'Stalls',        sectionKey: 'stalls',       quality: 7  },
+  'P5':   { section: 'Stalls',        sectionKey: 'stalls',       quality: 6.5},
+  'P7':   { section: 'Stalls',        sectionKey: 'stalls',       quality: 5.5},
+  'A1':   { section: 'Royal Circle',  sectionKey: 'royal_circle', quality: 7  },
+  'A3':   { section: 'Royal Circle',  sectionKey: 'royal_circle', quality: 6  },
+  'B':    { section: 'Royal Circle',  sectionKey: 'royal_circle', quality: 6  },
+  'B1':   { section: 'Royal Circle',  sectionKey: 'royal_circle', quality: 5.5},
+  'B2':   { section: 'Royal Circle',  sectionKey: 'royal_circle', quality: 5  },
+  'C2':   { section: 'Grand Circle',  sectionKey: 'grand_circle', quality: 4.5},
+  'C4':   { section: 'Grand Circle',  sectionKey: 'grand_circle', quality: 4  },
+  'D4':   { section: 'Grand Circle',  sectionKey: 'grand_circle', quality: 3.5},
+  'E0':   { section: 'Grand Circle',  sectionKey: 'grand_circle', quality: 3.5},
+  'E2':   { section: 'Balcony',       sectionKey: 'balcony',      quality: 3  },
+  'F1':   { section: 'Balcony',       sectionKey: 'balcony',      quality: 2.5},
+  'G1':   { section: 'Balcony',       sectionKey: 'balcony',      quality: 2  },
+  'H1':   { section: 'Balcony',       sectionKey: 'balcony',      quality: 1.5},
+};
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (isError ? ' error' : '');
+}
+
+function getFees(pricing) {
+  // Sum up external fees (restoration levy etc.) that are always charged
+  const external = pricing.priceBand.variants[0]?.adjusters
+    .filter(a => a.external)
+    .reduce((sum, a) => sum + a.price.value, 0) || 0;
+  return external;
+}
+
+function scoreRow(price, quality, remaining) {
+  // Value score: quality per £ spent, boosted by availability
+  // Higher = better value
+  const valuePerPound = quality / price;
+  const availBonus = remaining > 10 ? 1.1 : remaining > 5 ? 1.05 : 1.0;
+  return valuePerPound * availBonus * 100;
+}
+
+async function search() {
+  const btn = document.getElementById('searchBtn');
+  const resultsEl = document.getElementById('results');
+  const fromDate = document.getElementById('dateFrom').value;
+  const toDate = document.getElementById('dateTo').value;
+  const maxPrice = parseFloat(document.getElementById('maxPrice').value);
+  const sectionPref = document.getElementById('sectionPref').value;
+  const showTime = document.getElementById('showTime').value;
+
+  if (!fromDate || !toDate) {
+    setStatus('Please select a date range.', true);
+    return;
+  }
+  if (fromDate > toDate) {
+    setStatus('"From" date must be before "To" date.', true);
+    return;
+  }
+
+  btn.disabled = true;
+  resultsEl.innerHTML = '';
+  setStatus('Fetching performances...');
+
+
+
+  try {
+    // Read from local performances.json (generated by fetch-data.js)
+    const perfRes = await fetch("performances.json");
+    if (!perfRes.ok) throw new Error("performances.json not found — run: node fetch-data.js first");
+    const perfData = await perfRes.json();
+
+    const performances = perfData.data;
+    setStatus(`Loaded ${performances.length} performances. Filtering...`);
+
+    // Filter by date range and time preference
+    const filtered = performances.filter(p => {
+      if (p.startDate < fromDate || p.startDate > toDate) return false;
+      if (showTime === 'evening' && !p.startTime.startsWith('19')) return false;
+      if (showTime === 'matinee' && !p.startTime.startsWith('14')) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      setStatus('');
+      resultsEl.innerHTML = '<div class="empty">No performances found in that date range. Try widening it.</div>';
+      btn.disabled = false;
+      return;
+    }
+
+    setStatus(`Analysing ${filtered.length} performances...`);
+
+    // Build ranked list of band × performance combos
+    const rows = [];
+
+    for (const perf of filtered) {
+      for (const pricing of perf.pricing) {
+        if (pricing.capacityRemaining === 0) continue;
+
+        const bandName = pricing.priceBand.name;
+        // Skip VIP/hospitality packages
+        if (bandName.toLowerCase().includes('luxury') || bandName.toLowerCase().includes('opera box')) continue;
+
+        const info = BAND_INFO[bandName];
+        if (!info) continue;
+
+        // Section filter
+        if (sectionPref !== 'any' && info.sectionKey !== sectionPref) continue;
+
+        const facePrice = pricing.priceBand.variants[0]?.price.value;
+        if (!facePrice) continue;
+        if (facePrice > maxPrice) continue;
+
+        const fees = getFees(pricing);
+        const totalPrice = facePrice + fees;
+        const score = scoreRow(facePrice, info.quality, pricing.capacityRemaining);
+
+        rows.push({
+          perfId: perf.id,
+          date: perf.startDate,
+          time: perf.startTime.substring(0, 5),
+          bandName,
+          section: info.section,
+          quality: info.quality,
+          facePrice,
+          totalPrice,
+          remaining: pricing.capacityRemaining,
+          score,
+        });
+      }
+    }
+
+    if (rows.length === 0) {
+      setStatus('');
+      resultsEl.innerHTML = '<div class="empty">No available seats match your filters. Try relaxing the price or section constraints.</div>';
+      btn.disabled = false;
+      return;
+    }
+
+    // Sort by score descending
+    rows.sort((a, b) => b.score - a.score);
+
+    const maxScore = rows[0].score;
+    const top50 = rows.slice(0, 50);
+
+    // Format date nicely
+    function fmtDate(d) {
+      const dt = new Date(d + 'T12:00:00');
+      return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function availClass(n) {
+      if (n > 10) return 'plenty';
+      if (n > 4) return 'limited';
+      return 'scarce';
+    }
+
+    setStatus('');
+
+    let html = `
+      <div class="summary-bar">
+        Showing top ${top50.length} of ${rows.length} available band × date combinations · 
+        <span>${filtered.length} performances searched</span>
+      </div>
+      <div class="results">
+        <div class="results-header">
+          <div>Date</div>
+          <div>Band</div>
+          <div>Section</div>
+          <div>Face price</div>
+          <div>Seats left</div>
+          <div>Value score</div>
+        </div>
+    `;
+
+    top50.forEach((row, i) => {
+      const scoreNorm = Math.round((row.score / maxScore) * 100);
+      const bookUrl = `https://ticketing.lwtheatres.co.uk/event/121/performance/${row.perfId}`;
+      const isTop = i < 3;
+
+      html += `
+        <div class="result-row ${isTop ? 'top-pick' : ''}">
+          <div class="date-cell">
+            <div class="day">${fmtDate(row.date)}${isTop ? `<span class="top-badge">#${i+1}</span>` : ''}</div>
+            <div class="time">${row.time}</div>
+          </div>
+          <div class="band-cell">${row.bandName}</div>
+          <div class="section-cell">${row.section}</div>
+          <div class="price-cell">
+            <div class="face">£${row.facePrice.toFixed(2)}</div>
+            <div class="total">~£${row.totalPrice.toFixed(2)} with fees</div>
+          </div>
+          <div class="avail-cell ${availClass(row.remaining)}">${row.remaining} left</div>
+          <div class="score-cell">
+            ${scoreNorm}
+            <div class="score-bar"><div class="score-fill" style="width:${scoreNorm}%"></div></div>
+            <a class="book-link" href="${bookUrl}" target="_blank">Book →</a>
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+    resultsEl.innerHTML = html;
+
+  } catch (err) {
+    setStatus(`Error: ${err.message}. The API may be temporarily unavailable.`, true);
+    console.error(err);
+  }
+
+  btn.disabled = false;
+}
+
+// Set sensible defaults
+const today = new Date();
+const inThreeMonths = new Date(today);
+inThreeMonths.setMonth(today.getMonth() + 3);
+
+document.getElementById('dateFrom').value = today.toISOString().split('T')[0];
+document.getElementById('dateTo').value = inThreeMonths.toISOString().split('T')[0];
+</script>
+</body>
+</html>
