@@ -5,7 +5,7 @@ on:
     - cron: '0 7 * * *'   # 8am UK
     - cron: '0 11 * * *'  # 12pm UK
     - cron: '0 15 * * *'  # 4pm UK
-    - cron: '30 17 * * *'  # 6:30pm UK
+    - cron: '30 17 * * *' # 6:30pm UK
   workflow_dispatch:
 
 jobs:
@@ -20,9 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Install dependencies
-        run: npm install puppeteer
 
       - name: Fetch performance data
         run: node fetch-data.js
